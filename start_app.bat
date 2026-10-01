@@ -1,0 +1,3 @@
+@echo off
+echo Membuka Aplikasi Cetak Kartu Massal DayasaPaper...
+start "" "%~dp0index.html"

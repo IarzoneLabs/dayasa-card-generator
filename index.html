@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aplikasi Cetak Kartu Massal - PT Dayasa Arta Prima</title>
+  <meta name="description" content="Aplikasi Cetak Kartu Massal & Equipment Tag Generator PT Dayasa Arta Prima dengan dukungan Printer Evolis Zenius (ISO CR80: 85.6mm x 54mm), auto-mapping kolom SAP, paste Fun Loc & Equipment massal.">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  
+  <!-- External JS Libraries (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-logo-icon">
+        <i data-lucide="qr-code"></i>
+      </div>
+      <div>
+        <h1 class="brand-title">Dayasa Card Print</h1>
+        <p class="brand-tagline">Aplikasi Generator & Cetak Kartu Massal (Equipment Tag SAP)</p>
+      </div>
+    </div>
+
+    <!-- Step Navigation Tabs -->
+    <nav class="nav-steps">
+      <button class="step-btn active" onclick="switchTab('tab-data')" id="nav-tab-data">
+        <span class="step-num">1</span> Impor & Filter Data
+      </button>
+      <button class="step-btn" onclick="switchTab('tab-mapping')" id="nav-tab-mapping">
+        <span class="step-num">2</span> Desain & Mapping
+      </button>
+      <button class="step-btn" onclick="switchTab('tab-preview')" id="nav-tab-preview">
+        <span class="step-num">3</span> Pratinjau Massal
+      </button>
+      <button class="step-btn" onclick="switchTab('tab-print')" id="nav-tab-print">
+        <span class="step-num">4</span> Layout Cetak
+      </button>
+    </nav>
+
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" onclick="loadSampleData()">
+        <i data-lucide="sparkles"></i> Data Contoh SAP
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-content">
+
+    <!-- TAB 1: DATA MANAGER & BULK PASTE FILTER -->
+    <section id="tab-data" class="tab-pane active">
+      <div class="grid-2col">
+        <!-- Panel 1: Upload File -->
+        <div class="glass-panel">
+          <div class="panel-header">
+            <h2 class="panel-title"><i data-lucide="file-spreadsheet"></i> 1. Upload Database Excel SAP</h2>
+            <button class="btn btn-secondary btn-sm" onclick="downloadSampleCsv()">
+              <i data-lucide="download"></i> Format SAP (.csv)
+            </button>
+          </div>
+
+          <div class="upload-dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+            <div class="upload-icon">
+              <i data-lucide="upload-cloud"></i>
+            </div>
+            <h3 class="upload-title">Tarik & Lepas File Excel (.xlsx) atau CSV</h3>
+            <p class="upload-sub">Upload file database SAP lengkap pabrik (puluhan/ribuan equipment)</p>
+            <button class="btn btn-primary btn-sm">Pilih File dari Komputer</button>
+            <input type="file" id="file-input" class="file-input-hidden" accept=".csv, .xlsx, .xls">
+          </div>
+        </div>
+
+        <!-- Panel 2: Bulk Paste Equipment / Functional Location -->
+        <div class="glass-panel" style="border-color: var(--primary);">
+          <div class="panel-header">
+            <h2 class="panel-title" style="color: #4ade80;">
+              <i data-lucide="clipboard-paste"></i> 2. Paste Massal (Equipment / Fun Loc)
+            </h2>
+            <span class="badge-req" style="background: rgba(0, 166, 81, 0.2); color: #4ade80;">Fitur Cepat</span>
+          </div>
+
+          <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem; align-items: center;">
+            <label style="font-size: 0.85rem; font-weight: 600; color: #fff;">Target Paste:</label>
+            <label style="font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+              <input type="radio" name="paste-target" value="funloc" checked onchange="updatePastePlaceholder()">
+              <span>Functional Location (Fun Loc)</span>
+            </label>
+            <label style="font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+              <input type="radio" name="paste-target" value="equipment" onchange="updatePastePlaceholder()">
+              <span>Nomor Equipment</span>
+            </label>
+            <label style="font-size: 0.8rem; color: var(--text-main); cursor: pointer; display: flex; align-items: center; gap: 0.3rem;">
+              <input type="radio" name="paste-target" value="all" onchange="updatePastePlaceholder()">
+              <span>Bebas (Semua Kolom)</span>
+            </label>
+          </div>
+
+          <textarea id="bulk-paste-input" class="form-input" style="height: 100px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.4; resize: vertical;" placeholder="Tempelkan daftar Fun Loc di sini (bebas pisahkan baris/koma):&#10;DP-01-SP1-APS-RF05&#10;DAP1-PM1-DRY&#10;DAP1-PM1-STK"></textarea>
+
+          <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+            <button class="btn btn-primary" onclick="applyBulkPasteFilter()">
+              <i data-lucide="filter"></i> Filter & Ambil Equipment
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="clearPasteInput()">
+              <i data-lucide="x"></i> Bersihkan Paste
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Table Editor & Partial Search Panel -->
+      <div class="glass-panel">
+        <div class="panel-header" style="flex-wrap: wrap; gap: 1rem;">
+          <h2 class="panel-title">
+            <i data-lucide="table"></i> Tabel Data Equipment Dipilih
+            <span class="badge-req" id="data-count-badge" style="background: rgba(0, 166, 81, 0.2); color: #4ade80;">0 Terpilih</span>
+          </h2>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 280px; justify-content: flex-end;">
+            <div style="position: relative; width: 100%; max-width: 380px;">
+              <i data-lucide="search" style="position: absolute; left: 10px; top: 10px; width: 16px; height: 16px; color: var(--primary);"></i>
+              <input type="text" id="table-search" class="form-input" style="padding-left: 32px;" placeholder="Pencarian sebagian kata (misal: 'REFIN' atau 'RF05')..." oninput="filterTable()">
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="selectAllTableRows(true)"><i data-lucide="check-square"></i> Pilih Semua</button>
+            <button class="btn btn-secondary btn-sm" onclick="addNewRow()"><i data-lucide="plus"></i> Tambah</button>
+            <button class="btn btn-outline btn-sm" onclick="clearData()" style="color: var(--accent-danger);"><i data-lucide="trash-2"></i> Hapus</button>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="data-table">
+            <thead id="data-table-head">
+              <tr>
+                <th style="width: 35px;"><input type="checkbox" id="select-all-checkbox" onchange="selectAllTableRows(this.checked)"></th>
+                <th>#</th>
+                <th>Equipment</th>
+                <th>Description of Technical Object</th>
+                <th>Functional Location</th>
+                <th>Description of functional location</th>
+                <th>Technical obj. type</th>
+                <th>Manufacturer of asset</th>
+                <th>Manufacturer Model number</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="data-table-body">
+              <tr>
+                <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                  Belum ada data. Silakan unggah file, klik <strong>"Data Contoh SAP"</strong>, atau paste list Fun Loc / Equipment di atas.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+          <button class="btn btn-primary" onclick="switchTab('tab-mapping')">
+            Lanjut ke Pemetaan Kolom & Desain <i data-lucide="arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TEMPLATE DESIGNER & FIELD MAPPING -->
+    <section id="tab-mapping" class="tab-pane">
+      
+      <!-- Auto vs Manual Mapping Toggle Bar -->
+      <div class="mapping-toggle-bar">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <i data-lucide="sliders" style="color: var(--primary);"></i>
+          <div>
+            <strong style="font-size: 0.95rem; color: #fff;">Metode Pemetaan Kolom Data</strong>
+            <p style="font-size: 0.75rem; color: var(--text-muted);">Pilih apakah sistem mengenali kolom otomatis atau diatur manual per bidang kartu</p>
+          </div>
+        </div>
+
+        <div class="toggle-group">
+          <button class="toggle-option active" id="mode-auto-btn" onclick="setMappingMode('auto')">
+            <i data-lucide="wand-2"></i> Auto Mapping (Deteksi Otomatis)
+          </button>
+          <button class="toggle-option" id="mode-manual-btn" onclick="setMappingMode('manual')">
+            <i data-lucide="settings-2"></i> Manual Mapping (Pilih Dropdown)
+          </button>
+        </div>
+      </div>
+
+      <div class="grid-sidebar">
+        <!-- Sidebar Controls -->
+        <div>
+          <!-- Preset Selector -->
+          <div class="glass-panel">
+            <h3 class="panel-title" style="margin-bottom: 0.75rem;"><i data-lucide="layout-template"></i> Pilih Preset & Ukuran Kartu</h3>
+            <select id="preset-select" class="form-select" onchange="changePreset(this.value)">
+              <option value="dayasa_equipment_tag_cr80">🎴 Printer Evolis Zenius / PVC CR80 (85.6mm x 54mm)</option>
+              <option value="dayasa_equipment_tag">📄 Standard A4 Sheet Paper (100mm x 50mm)</option>
+              <option value="employee_id_card">💳 Kartu Pegawai / Employee ID Card (CR80)</option>
+            </select>
+          </div>
+
+          <!-- Logo Upload Customizer -->
+          <div class="glass-panel">
+            <h3 class="panel-title" style="margin-bottom: 0.75rem;"><i data-lucide="image"></i> Gambar Logo Kartu</h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+              Menggunakan elemen gambar <code>&lt;img&gt;</code> asli. Anda bisa mengunggah file logo PNG/JPG sendiri:
+            </p>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="document.getElementById('logo-upload-input').click()">
+                <i data-lucide="upload"></i> Unggah Gambar Logo
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="resetDefaultLogo()" title="Reset ke Logo Gambar Default">
+                <i data-lucide="rotate-ccw"></i> Reset
+              </button>
+            </div>
+            <input type="file" id="logo-upload-input" class="file-input-hidden" accept="image/*" onchange="handleLogoUpload(this)">
+          </div>
+
+          <!-- Mapping Fields Configuration -->
+          <div class="glass-panel">
+            <h3 class="panel-title" style="margin-bottom: 0.75rem;"><i data-lucide="git-merge"></i> Pemetaan Field Kartu</h3>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;" id="mapping-mode-desc">
+              Kolom otomatis dicocokkan berdasarkan data Excel SAP yang diunggah.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.85rem;" id="fields-mapping-container">
+              <!-- Field mapping dropdowns injected by JS -->
+            </div>
+          </div>
+
+          <!-- Additional Options -->
+          <div class="glass-panel">
+            <h3 class="panel-title" style="margin-bottom: 0.75rem;"><i data-lucide="settings"></i> Opsi Kartu</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Tipe Kode Baris:</label>
+                <select id="code-type-select" class="form-select" onchange="updateCardPreview()">
+                  <option value="QR">QR Code (2.20 cm x 2.20 cm)</option>
+                  <option value="BARCODE">Barcode (CODE128)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Card Live Preview Canvas -->
+        <div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h3 class="panel-title"><i data-lucide="eye"></i> Live Preview Desain Kartu</h3>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button class="btn btn-outline btn-sm" onclick="prevPreviewRecord()"><i data-lucide="chevron-left"></i></button>
+                <span style="font-size: 0.8rem; color: var(--text-muted);" id="preview-record-index">Record 1 / 1</span>
+                <button class="btn btn-outline btn-sm" onclick="nextPreviewRecord()"><i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
+
+            <div class="card-canvas-wrapper">
+              <div class="printable-card" id="main-preview-card">
+                <!-- Inner HTML built by JS -->
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+              <button class="btn btn-primary" onclick="switchTab('tab-preview')">
+                Lihat Pratinjau Seluruh Kartu Massal <i data-lucide="arrow-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: BATCH PREVIEW -->
+    <section id="tab-preview" class="tab-pane">
+      <div class="glass-panel">
+        <div class="panel-header">
+          <h2 class="panel-title">
+            <i data-lucide="grid"></i> Pratinjau Kartu Massal (Bulk Generator)
+            <span class="badge-req" id="batch-count-badge" style="background: rgba(0, 166, 81, 0.2); color: #4ade80;">0 Kartu</span>
+          </h2>
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-secondary btn-sm" onclick="selectAllBatchCards(true)"><i data-lucide="check-square"></i> Pilih Semua</button>
+            <button class="btn btn-outline btn-sm" onclick="selectAllBatchCards(false)"><i data-lucide="square"></i> Batal Pilih</button>
+            <button class="btn btn-primary btn-sm" onclick="switchTab('tab-print')"><i data-lucide="printer"></i> Lanjut Cetak</button>
+          </div>
+        </div>
+
+        <div class="batch-preview-grid" id="batch-preview-grid">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: PRINT & EXPORT LAYOUT (Evolis Zenius & Kertas A4) -->
+    <section id="tab-print" class="tab-pane">
+      <div class="grid-sidebar">
+        <!-- Print Configuration Controls -->
+        <div>
+          <div class="glass-panel">
+            <h3 class="panel-title" style="margin-bottom: 1rem;"><i data-lucide="sliders"></i> Pengaturan Printer & Kertas</h3>
+            
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Target Printer / Jenis Kertas:</label>
+                <select id="paper-size-select" class="form-select" onchange="renderPrintSheet()">
+                  <option value="EVOLIS_CR80">🎴 Printer Plastik Evolis Zenius (CR80: 85.6mm x 54mm)</option>
+                  <option value="A4_PORTRAIT">📄 Kertas A4 Portrait (Grid 2x5 = 10 Kartu per Lembar)</option>
+                  <option value="A4_LANDSCAPE">📄 Kertas A4 Landscape (Grid 2x4 = 8 Kartu per Lembar)</option>
+                </select>
+              </div>
+
+              <div>
+                <label style="font-size: 0.8rem; color: var(--text-muted);">Garis Potong (Crop Marks):</label>
+                <select id="crop-marks-select" class="form-select" onchange="renderPrintSheet()">
+                  <option value="false">Sembunyikan Garis Potong (Saran untuk Evolis)</option>
+                  <option value="true">Tampilkan Garis Potong (Untuk Kertas A4)</option>
+                </select>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid var(--border-glass);">
+
+              <button class="btn btn-primary btn-lg" style="width: 100%;" onclick="executePrint()">
+                <i data-lucide="printer"></i> CETAK KARTU (Ctrl+P)
+              </button>
+
+              <button class="btn btn-secondary" style="width: 100%;" onclick="exportPdf()">
+                <i data-lucide="file-down"></i> EKSPOR KE PDF
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Print Sheet Preview Container -->
+        <div>
+          <div class="glass-panel">
+            <div class="panel-header">
+              <h3 class="panel-title"><i data-lucide="file-text"></i> Lembar Cetak (Live Print Preview)</h3>
+              <span style="font-size: 0.8rem; color: var(--text-muted);" id="sheet-info">Halaman 1 dari 1</span>
+            </div>
+
+            <div style="overflow-x: auto; padding: 1rem; background: rgba(15,23,42,0.9); border-radius: var(--radius-md);">
+              <div class="print-area-wrapper" id="print-area-wrapper">
+                <div class="sheet-a4 show-crop-marks" id="sheet-preview">
+                  <!-- Cards rendered inside print container -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- App Main Logic JS Scripts -->
+  <script src="js/logo_data.js"></script>
+  <script src="js/sample_data.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/app.js"></script>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

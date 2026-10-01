@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 105" width="100%" height="100%">
+  <g transform="translate(0, 0)">
+    <!-- Blue Swoosh Arrow (Left) -->
+    <path d="M 32 75 C 12 75 2 58 2 38 C 2 24 10 13 23 6 C 21 13 22 20 25 25 C 18 28 13 35 13 43 C 13 56 23 65 35 65 C 41 65 48 62 52 56 L 40 56 L 60 34 L 60 61 L 49 61 C 45 69 39 75 32 75 Z" fill="#004ea2"/>
+    <!-- Green Swoosh Arrow (Right) -->
+    <path d="M 40 4 C 60 4 70 21 70 41 C 70 55 62 66 49 73 C 51 66 50 59 47 54 C 54 51 59 44 59 36 C 59 23 49 14 37 14 C 31 14 24 17 21 23 L 32 23 L 12 45 L 12 18 L 23 18 C 27 10 33 4 40 4 Z" fill="#79c000"/>
+  </g>
+
+  <!-- Dayasa Text (Blue) -->
+  <text x="76" y="58" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="46" fill="#004ea2" letter-spacing="-1.5">Dayasa</text>
+  
+  <!-- Paper Text (Green) -->
+  <text x="234" y="58" font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-weight="900" font-size="46" fill="#79c000" letter-spacing="-1.5">Paper</text>
+
+  <!-- member of SCGP Subtitle -->
+  <text x="175" y="86" font-family="Arial, sans-serif" font-weight="400" font-size="20" fill="#666666">member of <tspan font-weight="900" fill="#333333">SCGP</tspan></text>
+</svg>
