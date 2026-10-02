@@ -834,36 +834,40 @@ function executePrint() {
   }, 300);
 }
 
-// Helper: Preload & convert relative logo to Base64 Data URI in memory to prevent canvas taint
-function preloadAndConvertLogo() {
-  if (window.DEFAULT_LOGO_IMAGE && window.DEFAULT_LOGO_IMAGE.startsWith("data:image/png;base64,")) {
-    return;
-  }
+// Cache for on-demand Base64 logo conversion (PDF export only)
+window._cachedBase64Logo = null;
 
-  const img = new Image();
-  img.onload = function() {
-    try {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.naturalWidth || 400;
-      canvas.height = img.naturalHeight || 120;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      const dataUrl = canvas.toDataURL("image/png");
-      if (dataUrl && dataUrl.length > 500) {
-        window.DEFAULT_LOGO_IMAGE = dataUrl;
+async function getTaintFreeLogoUrl() {
+  if (appState.customLogoDataUrl) return appState.customLogoDataUrl;
+  if (window._cachedBase64Logo) return window._cachedBase64Logo;
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function() {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth || 400;
+        c.height = img.naturalHeight || 120;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const b64 = c.toDataURL("image/png");
+        window._cachedBase64Logo = b64;
+        resolve(b64);
+      } catch (e) {
+        resolve("DayasaPaper Corporate Logo.png");
       }
-    } catch (e) {
-      console.warn("Local canvas taint on file:// protocol:", e);
-    }
-  };
-  img.src = "DayasaPaper Corporate Logo.png";
+    };
+    img.onerror = function() {
+      resolve("DayasaPaper Corporate Logo.png");
+    };
+    img.src = "DayasaPaper Corporate Logo.png";
+  });
 }
 
-// Initialize Application on Page Load
+// Initialize Application on Page Load (Ultra-Fast & Lightweight)
 document.addEventListener("DOMContentLoaded", () => {
   initDropzone();
   loadSampleData(); // Load sample SAP data
-  preloadAndConvertLogo();
 });
 
 async function exportPdf() {

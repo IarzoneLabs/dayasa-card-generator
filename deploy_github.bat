@@ -5,23 +5,16 @@ echo ===================================================
 echo.
 cd /d "%~dp0"
 
-echo [1/5] Memperbarui file logo HD & Base64 Data URL...
+echo [1/5] Memperbarui file logo HD DayasaPaper...
 
 if exist "%~dp0DayasaPaper Corporate Logo.png" (
     copy /y "%~dp0DayasaPaper Corporate Logo.png" "%~dp0img\dayasa_logo.png" >nul 2>&1
 )
 
-if exist "C:\Users\Asus\.gemini\antigravity\brain\b801216d-cf3e-414d-8fba-bc59f20263b9\.user_uploaded\media__1790954919308.png" (
-    copy /y "C:\Users\Asus\.gemini\antigravity\brain\b801216d-cf3e-414d-8fba-bc59f20263b9\.user_uploaded\media__1790954919308.png" "%~dp0img\dayasa_logo.png" >nul 2>&1
-    copy /y "C:\Users\Asus\.gemini\antigravity\brain\b801216d-cf3e-414d-8fba-bc59f20263b9\.user_uploaded\media__1790954919308.png" "%~dp0DayasaPaper Corporate Logo.png" >nul 2>&1
-)
-
-C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -Command "$bytes = [System.IO.File]::ReadAllBytes('%~dp0img\dayasa_logo.png'); $b64 = [System.Convert]::ToBase64String($bytes); $js = 'window.DEFAULT_LOGO_IMAGE = \"data:image/png;base64,' + $b64 + '\";'; [System.IO.File]::WriteAllText('%~dp0js\logo_data.js', $js);" >nul 2>&1
-
 echo [2/5] Menginisialisasi Git Repository...
 git init
 git add .
-git commit -m "Deploy Dayasa Bulk Card Generator App with HD Base64 Logo"
+git commit -m "Deploy Ultra-Fast Lightweight Dayasa Card Generator"
 
 echo.
 echo [3/5] Buka https://github.com/new untuk buat repo baru jika belum.
