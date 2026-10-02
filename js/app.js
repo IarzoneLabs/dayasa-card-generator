@@ -834,6 +834,11 @@ function executePrint() {
   }, 300);
 }
 
+function exportPdfFast() {
+  alertToast("Membuka Pembuat PDF Instan Browser... Pada jendela printer pilih 'Save as PDF'.", "info");
+  executePrint();
+}
+
 // Cache for on-demand Base64 logo conversion (PDF export only)
 window._cachedBase64Logo = null;
 
