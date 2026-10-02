@@ -208,21 +208,15 @@
             </select>
           </div>
 
-          <!-- Logo Upload Customizer -->
+          <!-- Logo Info Panel -->
           <div class="glass-panel">
-            <h3 class="panel-title" style="margin-bottom: 0.75rem;"><i data-lucide="image"></i> Gambar Logo Kartu</h3>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.75rem;">
-              Menggunakan elemen gambar <code>&lt;img&gt;</code> asli. Anda bisa mengunggah file logo PNG/JPG sendiri:
+            <h3 class="panel-title" style="margin-bottom: 0.5rem;"><i data-lucide="image"></i> Gambar Logo Kartu</h3>
+            <p style="font-size: 0.8rem; color: var(--primary); font-weight: 600;">
+              <i data-lucide="check-circle"></i> Logo Resmi DayasaPaper HD Aktif
             </p>
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-secondary btn-sm" style="flex: 1;" onclick="document.getElementById('logo-upload-input').click()">
-                <i data-lucide="upload"></i> Unggah Gambar Logo
-              </button>
-              <button class="btn btn-outline btn-sm" onclick="resetDefaultLogo()" title="Reset ke Logo Gambar Default">
-                <i data-lucide="rotate-ccw"></i> Reset
-              </button>
-            </div>
-            <input type="file" id="logo-upload-input" class="file-input-hidden" accept="image/*" onchange="handleLogoUpload(this)">
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">
+              Menggunakan gambar logo HD asli DayasaPaper (PT Dayasa Arta Prima - member of SCGP) presisi tanpa distorsi.
+            </p>
           </div>
 
           <!-- Mapping Fields Configuration -->
@@ -333,8 +327,16 @@
                 <i data-lucide="printer"></i> CETAK KARTU (Ctrl+P)
               </button>
 
-              <button class="btn btn-secondary" style="width: 100%;" onclick="exportPdf()">
-                <i data-lucide="file-down"></i> EKSPOR KE PDF
+              <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(0,166,81,0.15); border: 1px solid rgba(0,166,81,0.3); border-radius: var(--radius-md); font-size: 0.75rem; color: #a7f3d0; line-height: 1.4;">
+                <strong style="color: #ffffff;"><i data-lucide="info" style="width:14px; height:14px; vertical-align:-2px;"></i> Pengaturan Printer Evolis Zenius:</strong><br>
+                1. <strong>Printer</strong>: Pilih <em>Evolis Zenius</em><br>
+                2. <strong>Layout</strong>: Pilih <em>Landscape</em><br>
+                3. <strong>Paper size</strong>: Pilih <em>CR80 (85.6 x 54 mm)</em><br>
+                4. <strong>Margins</strong>: Pilih <em>None (0 mm)</em>
+              </div>
+
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem;" onclick="exportPdf()">
+                <i data-lucide="file-down"></i> EKSPOR KE PDF (CR80 Presisi)
               </button>
             </div>
           </div>

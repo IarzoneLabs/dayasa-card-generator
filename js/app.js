@@ -390,7 +390,7 @@ function buildCardHTML(record, index, uniqueIdPrefix = "card") {
 
   const qrBoxId = `${uniqueIdPrefix}-qr-${index}`;
 
-  const logoSrc = appState.customLogoDataUrl || (window.DEFAULT_LOGO_IMAGE || "img/dayasa_logo.png");
+  const logoSrc = appState.customLogoDataUrl || window.DEFAULT_LOGO_IMAGE || "DayasaPaper Corporate Logo.png";
   const logoHTML = `<img src="${logoSrc}" class="card-brand-logo-img" alt="DayasaPaper Logo">`;
 
   return `
@@ -414,34 +414,34 @@ function buildCardHTML(record, index, uniqueIdPrefix = "card") {
       <div class="card-body-row">
         <!-- Left Fields -->
         <div class="card-fields-left">
-          <!-- FL Line -->
-          <div class="card-field-row">
+          <!-- FL Line (Top - Full Width Above QR) -->
+          <div class="card-field-row card-row-top">
             <span class="card-label-col">FL</span>
             <span class="card-val-col">${escapeHtml(flVal)}</span>
           </div>
-          ${flDescVal ? `<div class="card-subval-row">${escapeHtml(flDescVal)}</div>` : ''}
+          ${flDescVal ? `<div class="card-subval-row card-subval-top">${escapeHtml(flDescVal)}</div>` : ''}
 
-          <!-- EQ Line -->
-          <div class="card-field-row">
+          <!-- EQ Line (Bottom - QR Avoid) -->
+          <div class="card-field-row card-row-bottom">
             <span class="card-label-col">EQ</span>
             <span class="card-val-col">${escapeHtml(eqVal)}</span>
           </div>
-          ${eqDescVal ? `<div class="card-subval-row">${escapeHtml(eqDescVal)}</div>` : ''}
+          ${eqDescVal ? `<div class="card-subval-row card-subval-bottom">${escapeHtml(eqDescVal)}</div>` : ''}
 
           <!-- Type Line -->
-          <div class="card-field-row">
+          <div class="card-field-row card-row-bottom">
             <span class="card-label-col">Type</span>
             <span class="card-val-col">${escapeHtml(typeVal)}</span>
           </div>
 
           <!-- Mfg Line -->
-          <div class="card-field-row">
+          <div class="card-field-row card-row-bottom">
             <span class="card-label-col">Mfg</span>
             <span class="card-val-col">${escapeHtml(mfgVal)}</span>
           </div>
 
           <!-- Model Line -->
-          <div class="card-field-row">
+          <div class="card-field-row card-row-bottom">
             <span class="card-label-col">Model</span>
             <span class="card-val-col">${escapeHtml(modelVal)}</span>
           </div>
@@ -812,40 +812,131 @@ function renderPrintSheet() {
 
 function executePrint() {
   renderPrintSheet();
+
+  const paperSelect = document.getElementById("paper-size-select")?.value || "EVOLIS_CR80";
+  let styleEl = document.getElementById("dynamic-print-page-style");
+  if (!styleEl) {
+    styleEl = document.createElement("style");
+    styleEl.id = "dynamic-print-page-style";
+    document.head.appendChild(styleEl);
+  }
+
+  if (paperSelect === "EVOLIS_CR80") {
+    styleEl.innerHTML = `@media print { @page { size: 85.6mm 54.0mm landscape !important; margin: 0mm !important; } }`;
+  } else if (paperSelect === "A4_PORTRAIT") {
+    styleEl.innerHTML = `@media print { @page { size: A4 portrait !important; margin: 0mm !important; } }`;
+  } else {
+    styleEl.innerHTML = `@media print { @page { size: A4 landscape !important; margin: 0mm !important; } }`;
+  }
+
   setTimeout(() => {
     window.print();
   }, 300);
 }
 
-function exportPdf() {
-  const sheetEl = document.getElementById("sheet-preview");
-  if (!sheetEl) return;
+// Helper: Preload & convert relative logo to Base64 Data URI in memory to prevent canvas taint
+function preloadAndConvertLogo() {
+  if (window.DEFAULT_LOGO_IMAGE && window.DEFAULT_LOGO_IMAGE.startsWith("data:image/png;base64,")) {
+    return;
+  }
 
-  alertToast("Mengekspor PDF... Mohon tunggu sebentar.", "info");
+  const img = new Image();
+  img.onload = function() {
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth || 400;
+      canvas.height = img.naturalHeight || 120;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0);
+      const dataUrl = canvas.toDataURL("image/png");
+      if (dataUrl && dataUrl.length > 500) {
+        window.DEFAULT_LOGO_IMAGE = dataUrl;
+      }
+    } catch (e) {
+      console.warn("Local canvas taint on file:// protocol:", e);
+    }
+  };
+  img.src = "DayasaPaper Corporate Logo.png";
+}
 
-  html2canvas(sheetEl, {
-    scale: 2,
-    useCORS: true,
-    logging: false
-  }).then(canvas => {
-    const imgData = canvas.toDataURL("image/jpeg", 1.0);
-    const { jsPDF } = window.jspdf;
-    
-    if (appState.paperSize === "EVOLIS_CR80") {
-      const pdf = new jsPDF("landscape", "mm", [85.6, 54]);
-      pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54);
-      pdf.save("Kartu_Equipment_Tag_Evolis_CR80.pdf");
+// Initialize Application on Page Load
+document.addEventListener("DOMContentLoaded", () => {
+  initDropzone();
+  loadSampleData(); // Load sample SAP data
+  preloadAndConvertLogo();
+});
+
+async function exportPdf() {
+  const filteredRecords = getFilteredRecords();
+  if (filteredRecords.length === 0) {
+    alertToast("Tidak ada kartu untuk diekspor ke PDF.", "warning");
+    return;
+  }
+
+  alertToast("Mengekspor PDF CR80 Presisi (1 Kartu per Halaman)... Mohon tunggu.", "info");
+
+  const paperSelect = document.getElementById("paper-size-select")?.value || "EVOLIS_CR80";
+  const { jsPDF } = window.jspdf;
+
+  try {
+    if (paperSelect === "EVOLIS_CR80") {
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: [85.6, 54]
+      });
+
+      const cards = document.querySelectorAll("#sheet-preview .printable-card");
+      if (cards.length === 0) {
+        throw new Error("Elemen kartu tidak ditemukan.");
+      }
+
+      for (let idx = 0; idx < cards.length; idx++) {
+        const cardEl = cards[idx];
+
+        let canvas;
+        try {
+          canvas = await html2canvas(cardEl, {
+            scale: 3,
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: "#ffffff"
+          });
+        } catch (canvasErr) {
+          console.warn("Canvas capture retry without images:", canvasErr);
+          canvas = await html2canvas(cardEl, {
+            scale: 2,
+            logging: false,
+            backgroundColor: "#ffffff"
+          });
+        }
+
+        const imgData = canvas.toDataURL("image/png");
+
+        if (idx > 0) {
+          pdf.addPage([85.6, 54], "landscape");
+        }
+
+        pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
+      }
+
+      pdf.save("Kartu_Equipment_Tag_DayasaPaper_CR80.pdf");
+      alertToast("File PDF Kartu CR80 presisi berhasil diunduh!", "success");
     } else {
+      const sheetEl = document.getElementById("sheet-preview");
+      const canvas = await html2canvas(sheetEl, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+      const imgData = canvas.toDataURL("image/jpeg", 1.0);
       const pdf = new jsPDF("portrait", "mm", "a4");
       pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_A4.pdf");
+      alertToast("File PDF Lembar A4 berhasil diunduh!", "success");
     }
-    alertToast("File PDF berhasil diunduh!", "success");
-  }).catch(err => {
+  } catch (err) {
     console.error("PDF Export Error:", err);
-    alertToast("Gagal mengunduh PDF. Menggunakan dialog cetak browser sebagai gantinya.", "warning");
-    window.print();
-  });
+    alertToast("Mengalihkan ke jendela cetak PDF browser...", "info");
+    executePrint();
+  }
 }
 
 function downloadSampleCsv() {
