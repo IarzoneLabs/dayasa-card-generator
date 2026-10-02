@@ -873,69 +873,68 @@ async function exportPdf() {
     return;
   }
 
-  alertToast("Mengekspor PDF CR80 Presisi (1 Kartu per Halaman)... Mohon tunggu.", "info");
-
   const paperSelect = document.getElementById("paper-size-select")?.value || "EVOLIS_CR80";
   const { jsPDF } = window.jspdf;
 
   try {
     if (paperSelect === "EVOLIS_CR80") {
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: [85.6, 54]
-      });
-
       const cards = document.querySelectorAll("#sheet-preview .printable-card");
       if (cards.length === 0) {
         throw new Error("Elemen kartu tidak ditemukan.");
       }
 
+      alertToast(`Memproses PDF CR80... (Total ${cards.length} Kartu)`, "info");
+
+      const pdf = new jsPDF({
+        orientation: "landscape",
+        unit: "mm",
+        format: [85.6, 54],
+        compress: true
+      });
+
       for (let idx = 0; idx < cards.length; idx++) {
         const cardEl = cards[idx];
-
-        let canvas;
-        try {
-          canvas = await html2canvas(cardEl, {
-            scale: 3,
-            useCORS: true,
-            allowTaint: true,
-            logging: false,
-            backgroundColor: "#ffffff"
-          });
-        } catch (canvasErr) {
-          console.warn("Canvas capture retry without images:", canvasErr);
-          canvas = await html2canvas(cardEl, {
-            scale: 2,
-            logging: false,
-            backgroundColor: "#ffffff"
-          });
+        
+        // Show live progress indicator
+        if (cards.length > 2) {
+          alertToast(`Membuat PDF: Kartu ${idx + 1} dari ${cards.length}...`, "info");
         }
 
-        const imgData = canvas.toDataURL("image/png");
+        // Small yield to keep browser UI smooth & 100% lag-free
+        await new Promise(resolve => setTimeout(resolve, 30));
+
+        const canvas = await html2canvas(cardEl, {
+          scale: 1.8, // Optimal sharp resolution & 5x faster processing
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: "#ffffff"
+        });
+
+        const imgData = canvas.toDataURL("image/jpeg", 0.92);
 
         if (idx > 0) {
           pdf.addPage([85.6, 54], "landscape");
         }
 
-        pdf.addImage(imgData, "PNG", 0, 0, 85.6, 54);
+        pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
       }
 
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_CR80.pdf");
       alertToast("File PDF Kartu CR80 presisi berhasil diunduh!", "success");
     } else {
+      alertToast("Mengekspor PDF A4 Grid...", "info");
       const sheetEl = document.getElementById("sheet-preview");
-      const canvas = await html2canvas(sheetEl, { scale: 2, useCORS: true, allowTaint: true, logging: false });
-      const imgData = canvas.toDataURL("image/jpeg", 1.0);
-      const pdf = new jsPDF("portrait", "mm", "a4");
-      pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+      const canvas = await html2canvas(sheetEl, { scale: 1.8, useCORS: true, allowTaint: true, logging: false });
+      const imgData = canvas.toDataURL("image/jpeg", 0.90);
+      const pdf = new jsPDF("portrait", "mm", "a4", true);
+      pdf.addImage(imgData, "JPEG", 0, 0, 210, 297, undefined, "FAST");
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_A4.pdf");
       alertToast("File PDF Lembar A4 berhasil diunduh!", "success");
     }
   } catch (err) {
     console.error("PDF Export Error:", err);
-    alertToast("Mengalihkan ke jendela cetak PDF browser...", "info");
-    executePrint();
+    alertToast("Gagal mengunduh PDF: " + err.message, "warning");
   }
 }
 
