@@ -896,26 +896,25 @@ async function exportPdf() {
         compress: true
       });
 
+      const scaleVal = cards.length > 10 ? 1.4 : 1.6;
       for (let idx = 0; idx < cards.length; idx++) {
         const cardEl = cards[idx];
         
         // Show live progress indicator
-        if (cards.length > 2) {
-          alertToast(`Membuat PDF: Kartu ${idx + 1} dari ${cards.length}...`, "info");
-        }
+        alertToast(`Membuat PDF CR80: Kartu ${idx + 1} dari ${cards.length}...`, "info");
 
-        // Small yield to keep browser UI smooth & 100% lag-free
-        await new Promise(resolve => setTimeout(resolve, 30));
+        // 120ms yield to give Chrome watchdog timer pure idle time & prevent "Page Not Responding"
+        await new Promise(resolve => setTimeout(resolve, 120));
 
         const canvas = await html2canvas(cardEl, {
-          scale: 1.8, // Optimal sharp resolution & 5x faster processing
+          scale: scaleVal,
           useCORS: true,
           allowTaint: true,
           logging: false,
           backgroundColor: "#ffffff"
         });
 
-        const imgData = canvas.toDataURL("image/jpeg", 0.92);
+        const imgData = canvas.toDataURL("image/jpeg", 0.88);
 
         if (idx > 0) {
           pdf.addPage([85.6, 54], "landscape");
