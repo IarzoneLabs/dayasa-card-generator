@@ -611,40 +611,6 @@ function _makeQrDataUrl(text) {
   });
 }
 
-// 100% Exact HTML DOM Card Renderer
-async function _renderCardHTMLToCanvas(record, index) {
-  const wrapper = document.createElement("div");
-  wrapper.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:85.6mm;height:54mm;background:#fff;z-index:-9999;";
-  wrapper.innerHTML = buildCardHTML(record, index, "pdf-temp");
-  document.body.appendChild(wrapper);
-
-  const qrH = appState.columnMapping["_codeField"] || appState.columnMapping["Equipment"];
-  const qrVal = (qrH && record[qrH]) ? String(record[qrH]) : "SAMPLE";
-
-  const qrEl = wrapper.querySelector(`#pdf-temp-qr-${index}`);
-  if (qrEl && window.QRCode) {
-    try {
-      new QRCode(qrEl, { text: qrVal, width: 88, height: 88, colorDark: "#1c4da1", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
-    } catch(e) {}
-  }
-
-  // Allow QR Code canvas/image to draw
-  await new Promise(r => setTimeout(r, 50));
-
-  const cardEl = wrapper.querySelector(".printable-card");
-  const h2c = window.html2canvas;
-
-  let canvas = null;
-  if (typeof h2c === "function") {
-    try {
-      canvas = await h2c(cardEl, { scale: 1.8, useCORS: true, allowTaint: true, logging: false });
-    } catch(e) { console.warn("html2canvas error", e); }
-  }
-
-  wrapper.remove();
-  return canvas;
-}
-
 function _showProgress(msg) {
   let t = document.getElementById("pdf-progress-toast");
   if (!t) {
@@ -666,41 +632,41 @@ async function exportPdf() {
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) { alertToast("Library jsPDF belum dimuat (cek koneksi internet).", "warning"); return; }
 
-  const toast = _showProgress(`Memulai PDF... (0 dari ${filtered.length} kartu)`);
+  // 1. Ensure sheet preview is fully rendered in the active DOM tab
+  renderPrintSheet();
+  const toast = _showProgress(`Memproses tampilan kartu...`);
+
+  // Allow QR codes and images in DOM to fully render
+  await new Promise(r => setTimeout(r, 250));
 
   try {
     if (paperSel === "EVOLIS_CR80") {
       const pdf = new jsPDF({ orientation:"landscape", unit:"mm", format:[85.6, 54], compress:true });
-      const total = filtered.length;
+      const cardEls = document.querySelectorAll("#sheet-preview .printable-card");
+      const total = cardEls.length;
+
+      if (!total) throw new Error("Kartu tidak ditemukan di halaman.");
 
       for (let i = 0; i < total; i++) {
         toast.textContent = `Membuat PDF CR80: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
-        // Give browser UI thread 60ms to stay responsive
-        await new Promise(r => setTimeout(r, 60));
+        await new Promise(r => setTimeout(r, 40));
 
-        try {
-          const c = await _renderCardHTMLToCanvas(filtered[i], i);
-          if (c) {
-            const imgData = c.toDataURL("image/jpeg", 0.92);
-            if (i > 0) pdf.addPage([85.6, 54], "landscape");
-            pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
-            c.width = 0; c.height = 0;
-          }
-        } catch(cardErr) {
-          console.error(`Kartu ${i+1} terlewati:`, cardErr);
-        }
+        const cardEl = cardEls[i];
+        const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
+        const imgData = cv.toDataURL("image/jpeg", 0.95);
+
+        if (i > 0) pdf.addPage([85.6, 54], "landscape");
+        pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
       }
 
       _removeProgress();
       pdf.save(`Kartu_Equipment_Tag_DayasaPaper_CR80_${total}Kartu.pdf`);
-      alertToast(`✅ ${total} kartu CR80 berhasil diunduh!`, "success");
+      alertToast(`✅ ${total} kartu CR80 presisi HD berhasil diunduh!`, "success");
     } else {
       toast.textContent = "Mengekspor PDF A4...";
       const sheetEl = document.getElementById("sheet-preview");
       if (!sheetEl) throw new Error("Elemen sheet tidak ditemukan.");
-      const h2c = window.html2canvas;
-      if (!h2c) throw new Error("html2canvas tidak tersedia.");
-      const cv = await h2c(sheetEl, { scale:1.8, useCORS:true, allowTaint:true, logging:false });
+      const cv = await html2canvas(sheetEl, { scale: 2, useCORS: true, allowTaint: true, logging: false });
       const pdf = new jsPDF("portrait", "mm", "a4", true);
       pdf.addImage(cv.toDataURL("image/jpeg", 0.90), "JPEG", 0, 0, 210, 297, undefined, "FAST");
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_A4.pdf");
