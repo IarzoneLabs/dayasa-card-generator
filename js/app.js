@@ -629,16 +629,16 @@ async function _renderCardHTMLToCanvas(record, index) {
   }
 
   // Allow QR Code canvas/image to draw
-  await new Promise(r => setTimeout(r, 40));
+  await new Promise(r => setTimeout(r, 45));
 
   const cardEl = wrapper.querySelector(".printable-card");
   const h2c = window.html2canvas;
 
-  let canvas;
+  let canvas = null;
   if (typeof h2c === "function") {
-    canvas = await h2c(cardEl, { scale: 3, useCORS: true, allowTaint: true, logging: false });
-  } else {
-    canvas = await _renderCardNative(record);
+    try {
+      canvas = await h2c(cardEl, { scale: 2.5, useCORS: true, allowTaint: true, logging: false });
+    } catch(e) { console.warn("html2canvas fallback", e); }
   }
 
   wrapper.remove();
@@ -675,11 +675,21 @@ async function exportPdf() {
 
       for (let i = 0; i < total; i++) {
         toast.textContent = `Membuat PDF CR80: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
-        await new Promise(r => setTimeout(r, 15));
-        const c = await _renderCardHTMLToCanvas(filtered[i], i);
-        const imgData = c.toDataURL("image/jpeg", 0.95);
-        if (i > 0) pdf.addPage([85.6, 54], "landscape");
-        pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
+        // Give browser UI thread 35ms to garbage collect RAM & stay smooth
+        await new Promise(r => setTimeout(r, 35));
+
+        try {
+          const c = await _renderCardHTMLToCanvas(filtered[i], i);
+          if (c) {
+            const imgData = c.toDataURL("image/jpeg", 0.92);
+            if (i > 0) pdf.addPage([85.6, 54], "landscape");
+            pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
+            // Clean RAM immediately
+            c.width = 0; c.height = 0;
+          }
+        } catch(cardErr) {
+          console.error(`Kartu ${i+1} terlewati:`, cardErr);
+        }
       }
 
       _removeProgress();
@@ -693,7 +703,7 @@ async function exportPdf() {
       if (!h2c) throw new Error("html2canvas tidak tersedia.");
       const cv = await h2c(sheetEl, { scale:2, useCORS:true, allowTaint:true, logging:false });
       const pdf = new jsPDF("portrait", "mm", "a4", true);
-      pdf.addImage(cv.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 210, 297, undefined, "FAST");
+      pdf.addImage(cv.toDataURL("image/jpeg", 0.90), "JPEG", 0, 0, 210, 297, undefined, "FAST");
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_A4.pdf");
       _removeProgress();
       alertToast("PDF A4 berhasil diunduh!", "success");
