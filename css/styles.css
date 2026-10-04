@@ -888,7 +888,7 @@ body {
   }
 
   @page {
-    size: 85.6mm 54.0mm landscape;
+    size: 85.6mm 54.0mm landscape !important;
     margin: 0mm !important;
   }
 }
