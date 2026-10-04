@@ -331,10 +331,22 @@
                 <i data-lucide="file-down"></i> EKSPOR KE PDF (CR80 Presisi)
               </button>
 
+              <!-- FITUR BARU: Unduh Gambar PNG HD -->
+              <button class="btn btn-outline btn-lg" style="width: 100%; margin-top: 0.75rem; color: #38bdf8; border-color: rgba(56,189,248,0.4);" onclick="exportPngImages()">
+                <i data-lucide="image"></i> UNDUH GAMBAR KARTU (PNG HD)
+              </button>
+
+              <!-- FITUR BARU: Ekspor PDF via Gambar HD -->
+              <button class="btn btn-outline btn-lg" style="width: 100%; margin-top: 0.75rem; color: #a7f3d0; border-color: rgba(5,150,105,0.4);" onclick="exportPdfViaPng()">
+                <i data-lucide="file-check"></i> EKSPOR PDF VIA GAMBAR (Fast)
+              </button>
+
               <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(0,166,81,0.15); border: 1px solid rgba(0,166,81,0.3); border-radius: var(--radius-md); font-size: 0.75rem; color: #a7f3d0; line-height: 1.4;">
-                <strong style="color: #ffffff;"><i data-lucide="info" style="width:14px; height:14px; vertical-align:-2px;"></i> Keterangan 2 Tombol:</strong><br>
-                1. 🟢 <strong>CETAK KARTU (Ctrl+P)</strong>: Untuk cetak langsung ke printer Evolis Zenius (atau Simpan PDF langsung lewat dialog cetak browser).<br>
-                2. 🔘 <strong>EKSPOR KE PDF (CR80 Presisi)</strong>: Untuk mengunduh file file .pdf presisi otomatis per halaman (85.6mm x 54mm).
+                <strong style="color: #ffffff;"><i data-lucide="info" style="width:14px; height:14px; vertical-align:-2px;"></i> Keterangan Tombol Fitur:</strong><br>
+                1. 🟢 <strong>CETAK KARTU (Ctrl+P)</strong>: Untuk cetak langsung ke printer Evolis Zenius / Simpan PDF lewat dialog cetak.<br>
+                2. 🔘 <strong>EKSPOR KE PDF (CR80 Presisi)</strong>: Ekspor standar PDF per lembar halaman.<br>
+                3. 🖼️ <strong>UNDUH GAMBAR KARTU (PNG HD)</strong>: Unduh file gambar (.png) kartu secara terpisah.<br>
+                4. 📄 <strong>EKSPOR PDF VIA GAMBAR</strong>: Ekspor PDF cepat berbasis konversi Gambar HD.
               </div>
             </div>
           </div>

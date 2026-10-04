@@ -680,6 +680,85 @@ async function exportPdf() {
   }
 }
 
+// ─── FITUR BARU 1: Unduh Kartu sebagai Gambar PNG HD ─────────────────────────
+async function exportPngImages() {
+  const filtered = getFilteredRecords();
+  if (!filtered.length) { alertToast("Tidak ada kartu untuk diunduh.", "warning"); return; }
+
+  renderPrintSheet();
+  const toast = _showProgress(`Menyiapkan gambar PNG HD...`);
+  await new Promise(r => setTimeout(r, 200));
+
+  try {
+    const cardEls = document.querySelectorAll("#sheet-preview .printable-card");
+    const total = cardEls.length;
+    if (!total) throw new Error("Kartu tidak ditemukan di halaman.");
+
+    for (let i = 0; i < total; i++) {
+      toast.textContent = `Mengunduh PNG: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
+      await new Promise(r => setTimeout(r, 50));
+
+      const cardEl = cardEls[i];
+      const cv = await html2canvas(cardEl, { scale: 2.5, useCORS: true, allowTaint: true, logging: false });
+      const imgData = cv.toDataURL("image/png");
+
+      const link = document.createElement("a");
+      const eqHeader = appState.columnMapping["Equipment"] || "Equipment";
+      const eqVal = String(filtered[i][eqHeader] || `Kartu_${i+1}`).replace(/[^a-zA-Z0-9_-]/g, "_");
+      link.download = `Kartu_Tag_Dayasa_${eqVal}_#${i+1}.png`;
+      link.href = imgData;
+      link.click();
+    }
+
+    _removeProgress();
+    alertToast(`✅ ${total} Gambar Kartu PNG HD berhasil diunduh!`, "success");
+  } catch (err) {
+    _removeProgress();
+    console.error("PNG Error:", err);
+    alertToast("Gagal mengunduh gambar PNG: " + err.message, "warning");
+  }
+}
+
+// ─── FITUR BARU 2: Ekspor PDF berbasis Konversi Gambar PNG HD ───────────────
+async function exportPdfViaPng() {
+  const filtered = getFilteredRecords();
+  if (!filtered.length) { alertToast("Tidak ada kartu untuk diekspor.", "warning"); return; }
+
+  renderPrintSheet();
+  const toast = _showProgress(`Menyiapkan PDF via Gambar PNG HD...`);
+  await new Promise(r => setTimeout(r, 200));
+
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) { alertToast("Library jsPDF belum dimuat (cek internet).", "warning"); return; }
+
+  try {
+    const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: [85.6, 54], compress: true });
+    const cardEls = document.querySelectorAll("#sheet-preview .printable-card");
+    const total = cardEls.length;
+    if (!total) throw new Error("Kartu tidak ditemukan di halaman.");
+
+    for (let i = 0; i < total; i++) {
+      toast.textContent = `Ekspor PDF via PNG: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
+      await new Promise(r => setTimeout(r, 80));
+
+      const cardEl = cardEls[i];
+      const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
+      const imgData = cv.toDataURL("image/jpeg", 0.95);
+
+      if (i > 0) pdf.addPage([85.6, 54], "landscape");
+      pdf.addImage(imgData, "JPEG", 0, 0, 85.6, 54, undefined, "FAST");
+    }
+
+    _removeProgress();
+    pdf.save(`Kartu_Equipment_Tag_DayasaPaper_PNG_PDF_${total}Kartu.pdf`);
+    alertToast(`✅ PDF via Gambar PNG HD (${total} Kartu) berhasil diunduh!`, "success");
+  } catch (err) {
+    _removeProgress();
+    console.error("PDF via PNG Error:", err);
+    alertToast("Gagal ekspor PDF via PNG: " + err.message, "warning");
+  }
+}
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 function downloadSampleCsv() {
   if (!window.SAMPLE_DATA || typeof Papa === "undefined") return;
