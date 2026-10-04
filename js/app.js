@@ -658,52 +658,108 @@ function initDropzone() {
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault();
     dropzone.classList.remove("dragover");
-    if (e.dataTransfer.files.length > 0) {
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
       handleFileUpload(e.dataTransfer.files[0]);
     }
   });
 
   fileInput.addEventListener("change", (e) => {
-    if (e.target.files.length > 0) {
+    if (e.target.files && e.target.files.length > 0) {
       handleFileUpload(e.target.files[0]);
+      e.target.value = ""; // Reset value to allow uploading same file repeatedly
     }
   });
 }
 
 function handleFileUpload(file) {
+  if (!file) return;
+
   const fileName = file.name;
   const ext = fileName.split(".").pop().toLowerCase();
 
   const parseJsonData = (data) => {
-    appState.uploadedData = data;
-    appState.headers = Object.keys(data[0]);
+    if (!data || data.length === 0) {
+      alertToast("File kosong atau tidak memiliki baris data.", "warning");
+      return;
+    }
+
+    // Filter out completely empty rows
+    const validRows = data.filter(row => {
+      if (!row) return false;
+      return Object.values(row).some(val => val !== null && val !== undefined && String(val).trim() !== "");
+    });
+
+    if (validRows.length === 0) {
+      alertToast("File tidak memiliki baris data SAP yang valid.", "warning");
+      return;
+    }
+
+    appState.uploadedData = validRows;
+    appState.headers = Object.keys(validRows[0]);
     appState.selectedIndices = new Set(appState.uploadedData.map((_, i) => i));
     appState.activePreviewIndex = 0;
     appState.filterSearchQuery = "";
     autoDetectColumnMapping();
     renderDataTable();
     updateCardPreview();
-    alertToast(`Database SAP dimuat (${data.length} data). Anda dapat memasukkan/paste Fun Loc atau Equipment di samping.`, "success");
+    alertToast(`Database SAP dimuat (${validRows.length} data).`, "success");
   };
 
   if (ext === "csv") {
+    if (typeof Papa === "undefined") {
+      alertToast("Library CSV (PapaParse) belum dimuat. Periksa koneksi internet.", "warning");
+      return;
+    }
+
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
-        if (results.data && results.data.length > 0) parseJsonData(results.data);
+        if (results.data && results.data.length > 0) {
+          parseJsonData(results.data);
+        } else {
+          alertToast("File CSV kosong atau tidak valid.", "warning");
+        }
+      },
+      error: (err) => {
+        alertToast("Gagal membaca CSV: " + err.message, "warning");
       }
     });
-  } else if (ext === "xlsx" || ext === "xls") {
+  } else if (ext === "xlsx" || ext === "xls" || ext === "ods" || ext === "xlsm") {
+    if (typeof XLSX === "undefined") {
+      alertToast("Library Excel (SheetJS) belum dimuat. Periksa koneksi internet.", "warning");
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: "array" });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(worksheet);
-      if (json && json.length > 0) parseJsonData(json);
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: "array" });
+        if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+          throw new Error("File Excel tidak memiliki sheet yang valid.");
+        }
+
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+
+        if (json && json.length > 0) {
+          parseJsonData(json);
+        } else {
+          alertToast("Sheet Excel pertama kosong.", "warning");
+        }
+      } catch (err) {
+        console.error("Excel Read Error:", err);
+        alertToast("Gagal membaca file Excel: " + err.message, "warning");
+      }
+    };
+    reader.onerror = () => {
+      alertToast("Gagal membaca file dari sistem komputer.", "warning");
     };
     reader.readAsArrayBuffer(file);
+  } else {
+    alertToast("Format file tidak didukung. Harap upload file .xlsx, .xls, atau .csv", "warning");
   }
 }
 
