@@ -913,10 +913,6 @@ async function getTaintFreeLogoUrl() {
   if (appState.customLogoDataUrl) return appState.customLogoDataUrl;
   return window.DEFAULT_LOGO_IMAGE;
 }
-
-// Initialize Application on Page Load (Ultra-Fast & Lightweight)
-document.addEventListener("DOMContentLoaded", () => {
-  initDropzone();
 // Native Memory QR Code Data URL Generator
 function generateQrDataUrl(textValue) {
   return new Promise((resolve) => {
