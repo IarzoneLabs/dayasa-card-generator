@@ -262,7 +262,7 @@ function buildCardHTML(record, index, uniqueIdPrefix = "card") {
   const modelVal = g("ModelNumber")          || "";
   const badge    = g("BadgeText")            || (preset && preset.badgeText) || "ME";
   const qrId     = `${uniqueIdPrefix}-qr-${index}`;
-  const logoSrc  = appState.customLogoDataUrl || "img/dayasa_logo.png";
+  const logoSrc  = appState.customLogoDataUrl || window.DEFAULT_LOGO_IMAGE || "img/dayasa_logo.png";
 
   return `
     <div class="printable-card ${isCr80 ? "card-cr80" : ""}">
