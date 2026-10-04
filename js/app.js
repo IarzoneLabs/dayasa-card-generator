@@ -637,7 +637,7 @@ async function exportPdf() {
   const toast = _showProgress(`Memproses tampilan kartu...`);
 
   // Allow QR codes and images in DOM to fully render
-  await new Promise(r => setTimeout(r, 250));
+  await new Promise(r => setTimeout(r, 200));
 
   try {
     if (paperSel === "EVOLIS_CR80") {
@@ -649,10 +649,11 @@ async function exportPdf() {
 
       for (let i = 0; i < total; i++) {
         toast.textContent = `Membuat PDF CR80: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
-        await new Promise(r => setTimeout(r, 40));
+        await new Promise(r => setTimeout(r, 30));
 
         const cardEl = cardEls[i];
-        const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
+        // imageTimeout: 1500 ensures html2canvas NEVER blocks Chrome's 2-second watchdog
+        const cv = await html2canvas(cardEl, { scale: 2, useCORS: true, allowTaint: true, logging: false, imageTimeout: 1500 });
         const imgData = cv.toDataURL("image/jpeg", 0.95);
 
         if (i > 0) pdf.addPage([85.6, 54], "landscape");
@@ -666,7 +667,7 @@ async function exportPdf() {
       toast.textContent = "Mengekspor PDF A4...";
       const sheetEl = document.getElementById("sheet-preview");
       if (!sheetEl) throw new Error("Elemen sheet tidak ditemukan.");
-      const cv = await html2canvas(sheetEl, { scale: 2, useCORS: true, allowTaint: true, logging: false });
+      const cv = await html2canvas(sheetEl, { scale: 2, useCORS: true, allowTaint: true, logging: false, imageTimeout: 1500 });
       const pdf = new jsPDF("portrait", "mm", "a4", true);
       pdf.addImage(cv.toDataURL("image/jpeg", 0.90), "JPEG", 0, 0, 210, 297, undefined, "FAST");
       pdf.save("Kartu_Equipment_Tag_DayasaPaper_A4.pdf");
@@ -696,10 +697,10 @@ async function exportPngImages() {
 
     for (let i = 0; i < total; i++) {
       toast.textContent = `Mengunduh PNG: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise(r => setTimeout(r, 40));
 
       const cardEl = cardEls[i];
-      const cv = await html2canvas(cardEl, { scale: 2.5, useCORS: true, allowTaint: true, logging: false });
+      const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false, imageTimeout: 1500 });
       const imgData = cv.toDataURL("image/png");
 
       const link = document.createElement("a");
@@ -739,10 +740,10 @@ async function exportPdfViaPng() {
 
     for (let i = 0; i < total; i++) {
       toast.textContent = `Ekspor PDF via PNG: ${i+1} dari ${total} (${Math.round(((i+1)/total)*100)}%)`;
-      await new Promise(r => setTimeout(r, 80));
+      await new Promise(r => setTimeout(r, 40));
 
       const cardEl = cardEls[i];
-      const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false });
+      const cv = await html2canvas(cardEl, { scale: 2.2, useCORS: true, allowTaint: true, logging: false, imageTimeout: 1500 });
       const imgData = cv.toDataURL("image/jpeg", 0.95);
 
       if (i > 0) pdf.addPage([85.6, 54], "landscape");
