@@ -77,7 +77,7 @@
             <h3 class="upload-title">Tarik & Lepas File Excel (.xlsx) atau CSV</h3>
             <p class="upload-sub">Upload file database SAP lengkap pabrik (puluhan/ribuan equipment)</p>
             <button type="button" class="btn btn-primary btn-sm" onclick="event.stopPropagation(); document.getElementById('file-input').click()">Pilih File dari Komputer</button>
-            <input type="file" id="file-input" class="file-input-hidden" accept=".csv, .xlsx, .xls, .ods, .xlsm">
+            <input type="file" id="file-input" class="file-input-hidden" accept=".csv, .xlsx, .xls, .ods, .xlsm" onchange="handleFileSelect(this)">
           </div>
         </div>
 

@@ -48,11 +48,27 @@ const FIELD_ALIASES = {
   ]
 };
 
-// Initialize Application on Page Load
-document.addEventListener("DOMContentLoaded", () => {
+// Global Handler for Direct Inline Input File Selection (100% Race-Condition Free)
+function handleFileSelect(inputElement) {
+  if (inputElement && inputElement.files && inputElement.files.length > 0) {
+    handleFileUpload(inputElement.files[0]);
+    inputElement.value = "";
+  }
+}
+
+// Initialize Application on Page Load (Handles both loading & ready states)
+function initApp() {
   initDropzone();
-  loadSampleData(); // Load sample SAP data
-});
+  if (!appState.uploadedData || appState.uploadedData.length === 0) {
+    loadSampleData();
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initApp);
+} else {
+  initApp();
+}
 
 // Helper: Get strictly filtered & selected records array across ALL tabs
 function getFilteredRecords() {
